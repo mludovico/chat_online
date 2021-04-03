@@ -9,56 +9,29 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
 
 class TextComposer extends StatefulWidget {
+  
+  final Function({String text, String imgUrl}) sendMessage;
+  
+  TextComposer(this.sendMessage);
+  
   @override
-  _TextComposerState createState() => _TextComposerState();
+  _TextComposerState createState() => _TextComposerState(sendMessage);
 }
 
 class _TextComposerState extends State<TextComposer> {
 
   bool _isComposing = false;
   final _textController = TextEditingController();
-  final googleSignIn = GoogleSignIn();
   final auth = FirebaseAuth.instance;
+  final Function({String text, String imgUrl}) sendMessage;
 
+  _TextComposerState(this.sendMessage);
+  
   void _reset(){
     setState(() {
       _textController.clear();
       _isComposing = false;
     });
-  }
-
-  _sendMessage({String text, String imgUrl}){
-    FirebaseFirestore.instance.collection("messages").add(
-        {
-          "text": text,
-          "imgUrl": imgUrl,
-          "senderName": googleSignIn.currentUser.displayName,
-          "senderPhotoUrl": googleSignIn.currentUser.photoUrl
-        }
-    );
-  }
-
-  _handleSubmitted(String text)async{
-    await _ensureLogedIn();
-    _sendMessage(text: text);
-  }
-
-  Future<Null> _ensureLogedIn()async{
-    GoogleSignInAccount user = googleSignIn.currentUser;
-    if(user == null)
-      user = await googleSignIn.signInSilently();
-    if(user == null)
-      user = await googleSignIn.signIn();
-    if(auth.currentUser == null){
-      GoogleSignInAuthentication credentials =
-      await googleSignIn.currentUser.authentication;
-      await auth.signInWithCredential(
-          GoogleAuthProvider.credential(
-            idToken: credentials.idToken,
-            accessToken: credentials.accessToken,
-          )
-      );
-    }
   }
 
   @override
@@ -97,7 +70,7 @@ class _TextComposerState extends State<TextComposer> {
                     ).putFile(imgFile);
                     TaskSnapshot taskSnapshot = await task.whenComplete(() {});
                     String url = await taskSnapshot.ref.getDownloadURL();
-                    _sendMessage(imgUrl: url);
+                    sendMessage(imgUrl: url);
                   }
               ),
             ),
